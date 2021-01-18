@@ -16,7 +16,7 @@
 import argparse
 import bisect
 import sys
-
+import time
 
 MAX_DISTANCES = 30
 MIN_TIME_BETWEEN_INTERPOLATION_POINTS = 5 * 60 * 1000
@@ -102,30 +102,35 @@ def get_average_score(i, j, arr1, n, m, arr2):
     a = (y1 - y0) / (x1 - x0)
 
     min_dist_dict = {}
-    for k in xrange(0, len(arr2)):
-        x = arr2[k]
-        y = y0 + (x - x0) * a
+    y_arr = [y0 + (x - x0) * a for x in arr2]
+    for y in y_arr:
         min_dist = sys.maxint
         min_dist_index = None
-        for l in xrange(0, len(arr1)):
-            dist = abs(y - arr1[l])
+        for l in xrange(0, MAX_DISTANCES):
+            arr1_val = arr1[l]
+            if y > arr1_val:
+                dist = y - arr1_val
+            else:
+                dist = arr1_val - y
             if dist > 1000:
                 continue
-            if dist < min_dist:
+            if dist <= min_dist:
                 min_dist = dist
                 min_dist_index = l
-        if min_dist_index in min_dist_dict:
-            min_dist_dict[min_dist_index] = min(min_dist, min_dist_dict[min_dist_index])
-        else:
+            else:
+                break
+        if min_dist_index not in min_dist_dict or min_dist_dict[min_dist_index] > min_dist:
             min_dist_dict[min_dist_index] = min_dist
 
-    if len(min_dist_dict) < 20:
+    min_dist_dict_len = len(min_dist_dict)
+    if min_dist_dict_len < 20:
+        # probably not a real value. or too many untrue markers in the srt.
         return sys.maxint, None, None, None
 
     sum_dist = 0
     for val in min_dist_dict.itervalues():
         sum_dist += val
-    avg = sum_dist / len(min_dist_dict)
+    avg = sum_dist / min_dist_dict_len
     return avg, a, y0, x0
 
 
@@ -186,4 +191,7 @@ def main():
 
 if __name__ == "__main__":
     # execute only if run as a script
+    start = time.time()
     main()
+    end = time.time()
+    print end - start
